@@ -1,0 +1,50 @@
+// api.js — all HTTP calls to the backend
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+ 
+// Change this to your backend URL
+const BASE_URL = 'http://localhost:5000/api';
+ 
+const api = axios.create({ baseURL: BASE_URL });
+ 
+// Attach JWT token to every request automatically
+api.interceptors.request.use(async config => {
+ const token = await AsyncStorage.getItem('token');
+ if (token) config.headers.Authorization = `Bearer ${token}`;
+ return config;
+});
+ 
+// --- Auth ---
+export const register    = data => api.post('/auth/register', data);
+export const login       = data => api.post('/auth/login', data);
+export const loginGoogle = data => api.post('/auth/google', data);
+export const getMe       = ()   => api.get('/auth/me');
+export const saveFcmToken = tok => api.patch('/auth/fcm-token', { token: tok });
+ 
+// --- Cafes ---
+export const getNearbyCafes = (lat, lng, radius) =>
+ api.get(`/cafes/nearby?lat=${lat}&lng=${lng}&radius=${radius || 5000}`);
+export const getCafeDetails = id => api.get(`/cafes/${id}`);
+export const createCafe     = data => api.post('/cafes', data);
+export const updateCafe     = (id, data) => api.patch(`/cafes/${id}`, data);
+ 
+// --- Items ---
+export const postItem     = data => api.post('/items', data);
+export const getCafeItems = cafeId => api.get(`/items/cafe/${cafeId}`);
+export const markSoldOut  = id => api.patch(`/items/${id}/sold-out`);
+ 
+// --- Orders ---
+export const placeOrder     = data  => api.post('/orders', data);
+export const getMyOrders    = ()    => api.get('/orders/my');
+export const getCafeOrders  = id   => api.get(`/orders/cafe/${id}`);
+export const updateOrderStatus = (id, status) =>
+ api.patch(`/orders/${id}/status`, { status });
+ 
+// --- Payments ---
+export const createPaymentIntent = orderId =>
+ api.post('/payments/intent', { orderId });
+ 
+// --- Reviews ---
+export const postReview = data => api.post('/reviews', data);
+ 
+export default api;
