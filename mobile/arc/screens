@@ -1,0 +1,81 @@
+// HomeScreen.js — list of nearby cafés with surplus food
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity,
+         StyleSheet, Image, ActivityIndicator } from 'react-native';
+import * as Location from 'expo-location';
+import { getNearbyCafes } from '../../services/api';
+import { pickupUrgencyLabel } from '../../utils/timeFormat'; // pickup window helper
+
+const GREEN = '#2D6A4F';
+
+export default function HomeScreen({ navigation }) {
+  const [cafes,   setCafes]   = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { fetchNearbyCafes(); }, []);
+
+  const fetchNearbyCafes = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({});
+      const res = await getNearbyCafes(loc.coords.latitude, loc.coords.longitude);
+      setCafes(res.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const renderCafe = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('Cafe', { cafeId: item._id })}
+    >
+      <Image source={{ uri: item.images?.[0] }} style={styles.img} />
+      <View style={styles.info}>
+        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.addr}>{item.address}</Text>
+        {/* Pickup window urgency badge — e.g. '⏰ Closes in 23 min' */}
+        {item.nextPickupEnd && (
+          <Text style={styles.pickupBadge}>
+            {pickupUrgencyLabel(item.nextPickupEnd)}
+          </Text>
+        )}
+        <View style={styles.row}>
+          <Text style={styles.badge}>⭐ {item.rating || 'New'}</Text>
+          <Text style={styles.badge}>🥡 {item.activeItems} items left</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) return <ActivityIndicator style={{flex:1}} color={GREEN} />;
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Tonight's Prisos Near You 🟢</Text>
+      <FlatList
+        data={cafes}
+        keyExtractor={c => c._id}
+        renderItem={renderCafe}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container:   { flex: 1, backgroundColor: '#F7FAFC', padding: 16 },
+  header:      { fontSize: 22, fontWeight: '700', color: '#2D6A4F', marginBottom: 16 },
+  card:        { backgroundColor: '#fff', borderRadius: 12, marginBottom: 16,
+                 shadowColor:'#000', shadowOpacity:0.08, shadowRadius:8, elevation:3 },
+  img:         { width: '100%', height: 160, borderTopLeftRadius: 12,
+                 borderTopRightRadius: 12, backgroundColor: '#D8F3DC' },
+  info:        { padding: 12 },
+  name:        { fontSize: 16, fontWeight: '700', color: '#2D3748' },
+  addr:        { fontSize: 13, color: '#718096', marginTop: 2 },
+  pickupBadge: { fontSize: 13, color: '#2D6A4F', fontWeight: '600',
+                 marginTop: 6, marginBottom: 2 },  // 'Pickup between 8:30–9:30 PM'
+  row:       { flexDirection: 'row', gap: 8, marginTop: 8 },
+  badge:     { backgroundColor: '#D8F3DC', color: '#2D6A4F', paddingHorizontal: 8,
+               paddingVertical: 3, borderRadius: 20, fontSize: 12, fontWeight: '600' },
+});

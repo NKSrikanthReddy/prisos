@@ -1,0 +1,73 @@
+// AppNavigator.js — screens for customers and café owners
+import React from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator }     from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+
+// Customer screens
+import HomeScreen     from '../screens/customer/HomeScreen';
+import MapScreen      from '../screens/customer/MapScreen';
+import CafeScreen     from '../screens/customer/CafeScreen';
+import CheckoutScreen from '../screens/customer/CheckoutScreen';
+import OrdersScreen   from '../screens/customer/OrdersScreen';
+import ProfileScreen  from '../screens/customer/ProfileScreen';
+
+// Owner screens
+import DashboardScreen from '../screens/owner/DashboardScreen';
+import PostItemScreen  from '../screens/owner/PostItemScreen';
+import ManageOrders   from '../screens/owner/ManageOrdersScreen';
+
+// Auth screens
+import LoginScreen    from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+
+const Tab   = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+// Icon helper
+const icon = (name) => ({ color, size }) =>
+  <Ionicons name={name} color={color} size={size} />;
+
+// Customer tab bar
+const CustomerTabs = () => (
+  <Tab.Navigator screenOptions={{ tabBarActiveTintColor: '#2D6A4F' }}>
+    <Tab.Screen name='Home'    component={HomeScreen}    options={{ tabBarIcon: icon('home') }} />
+    <Tab.Screen name='Map'     component={MapScreen}     options={{ tabBarIcon: icon('map') }} />
+    <Tab.Screen name='Orders'  component={OrdersScreen}  options={{ tabBarIcon: icon('receipt') }} />
+    <Tab.Screen name='Profile' component={ProfileScreen} options={{ tabBarIcon: icon('person') }} />
+  </Tab.Navigator>
+);
+
+// Owner tab bar
+const OwnerTabs = () => (
+  <Tab.Navigator screenOptions={{ tabBarActiveTintColor: '#2D6A4F' }}>
+    <Tab.Screen name='Dashboard' component={DashboardScreen} options={{ tabBarIcon: icon('grid') }} />
+    <Tab.Screen name='Post'      component={PostItemScreen}  options={{ tabBarIcon: icon('add-circle') }} />
+    <Tab.Screen name='Orders'    component={ManageOrders}    options={{ tabBarIcon: icon('list') }} />
+  </Tab.Navigator>
+);
+
+export default function AppNavigator() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!user ? (
+        <>
+          <Stack.Screen name='Login'    component={LoginScreen} />
+          <Stack.Screen name='Register' component={RegisterScreen} />
+        </>
+      ) : user.role === 'owner' ? (
+        <Stack.Screen name='OwnerApp' component={OwnerTabs} />
+      ) : (
+        <>
+          <Stack.Screen name='CustomerApp' component={CustomerTabs} />
+          <Stack.Screen name='Cafe'     component={CafeScreen} />
+          <Stack.Screen name='Checkout' component={CheckoutScreen} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+}
